@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans tracking-tight antialiased selection:bg-brand-500 selection:text-white;
+  }
+}
+
+@layer components {
+  /* Composant générique d'effet "Verre" (Glassmorphism) */
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-premium rounded-2xl;
+  }
+  
+  /* Bouton principal animé */
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 px-6 py-2.5 font-medium text-white bg-gradient-to-r from-brand-500 to-brand-600 rounded-xl hover:from-brand-600 hover:to-brand-700 shadow-xl shadow-brand-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-primary-emerald {
+    @apply flex items-center justify-center gap-2 px-6 py-2.5 font-medium text-white bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl hover:from-emerald-600 hover:to-emerald-700 shadow-xl shadow-emerald-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .btn-primary-indigo {
+    @apply flex items-center justify-center gap-2 px-6 py-2.5 font-medium text-white bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl hover:from-indigo-600 hover:to-indigo-700 shadow-xl shadow-indigo-500/20 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0;
+  }
+}
