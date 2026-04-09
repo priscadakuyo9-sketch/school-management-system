@@ -8,10 +8,10 @@ services:
     startCommand: npm run migrate:prod && npm start
     envVars:
       - key: DATABASE_URL
-        value: "file:./dev.db" # Default SQLite DB connection
+        value: file:./dev.db
       - key: PORT
         value: "5000"
       - key: JWT_SECRET
         generateValue: true
       - key: STRIPE_SECRET_KEY
-        value: "sk_test_123" # Replace in Render dashboard
+        value: sk_test_123
