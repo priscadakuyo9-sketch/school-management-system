@@ -1,16 +1,79 @@
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, TrendingUp, Users, Wallet, CreditCard as CreditCardIcon, BarChart } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowUpRight, TrendingUp, Users, Wallet, CreditCard as CreditCardIcon, BarChart, Loader2 } from 'lucide-react';
 import API_URL from '../config';
+import Modal from '../components/Modal';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ students: 0, teachers: 0, classes: 0 });
+  const [stats, setStats] = useState({ students: 0, teachers: 0, classes: 0, totalRevenue: 0, pendingRevenue: 0 });
+  const [activities, setActivities] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    enrollmentId: `ENR-${Date.now().toString().slice(-6)}`,
+    dateOfBirth: '2010-01-01',
+    gender: 'Garçon',
+    classId: ''
+  });
 
-  useEffect(() => {
-    fetch(`${API_URL}/stats`)
+  const fetchStats = () => {
+    fetch(`${API_URL}/school/stats`, {
+       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(console.error);
+
+    fetch(`${API_URL}/school/recent-activities`, {
+       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setActivities(data))
+      .catch(console.error);
+
+    fetch(`${API_URL}/school/stats/registrations`, {
+       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setChartData(data))
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    fetchStats();
   }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_URL}/school/students`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(formData)
+      });
+      if (response.ok) {
+        setIsModalOpen(false);
+        fetchStats();
+        setFormData({
+          firstName: '', lastName: '', email: '',
+          enrollmentId: `ENR-${Date.now().toString().slice(-6)}`,
+          dateOfBirth: '2010-01-01', gender: 'Garçon', classId: ''
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -19,11 +82,59 @@ export default function Dashboard() {
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Vue d'ensemble</h2>
           <p className="text-slate-500 mt-2 font-medium">Bienvenue. Voici l'état de l'établissement aujourd'hui, le {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.</p>
         </div>
-        <button className="btn-primary shrink-0 group">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary shrink-0 group"
+        >
           <span>+ Nouvelle Inscription</span>
           <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </button>
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nouvelle Inscription">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Prénom</label>
+              <input 
+                required
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none"
+                placeholder="Ex: Emma"
+                value={formData.firstName}
+                onChange={e => setFormData({...formData, firstName: e.target.value})}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Nom</label>
+              <input 
+                required
+                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none"
+                placeholder="Ex: Dubois"
+                value={formData.lastName}
+                onChange={e => setFormData({...formData, lastName: e.target.value})}
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Email</label>
+            <input 
+              type="email"
+              required
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none"
+              placeholder="emma.dubois@parent.com"
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full btn-primary h-12 mt-4"
+          >
+            {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Valider l'Inscription"}
+          </button>
+        </form>
+      </Modal>
 
       {/* Cartes Clés (KPIs) avec de sublimes dégradés et icônes absolues */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -35,28 +146,28 @@ export default function Dashboard() {
           icon={<Users className="w-24 h-24 text-brand-500/10 absolute -bottom-4 -right-4 -rotate-12 transition-transform group-hover:scale-110 group-hover:-rotate-6" />}
         />
         <KpiCard 
-          title="Taux Présence" 
-          value="98.2%" 
-          change="+1.5%" 
+          title="Total Enseignants" 
+          value={stats.teachers.toString()} 
+          change="Saison" 
           trend="up" 
           icon={<TrendingUp className="w-24 h-24 text-indigo-500/10 absolute -bottom-4 -right-4 -rotate-12 transition-transform group-hover:scale-110 group-hover:-rotate-6" />}
           borderClass="hover:border-indigo-200"
           valueClass="text-indigo-900"
         />
         <KpiCard 
-          title="Revenus Mensuels" 
-          value="58 400 €" 
-          change="+4300 €" 
+          title="Revenus Totaux" 
+          value={`${stats.totalRevenue?.toLocaleString() || 0} F CFA`} 
+          change="+actuel" 
           trend="up" 
           icon={<Wallet className="w-24 h-24 text-emerald-500/10 absolute -bottom-4 -right-4 -rotate-12 transition-transform group-hover:scale-110 group-hover:-rotate-6" />}
           borderClass="hover:border-emerald-200"
           valueClass="text-emerald-900"
         />
         <KpiCard 
-          title="Retards Paiement" 
-          value="14 500 €" 
-          change="-5%" 
-          trend="down" // Down pour des impayés, c'est positif !
+          title="En attente" 
+          value={`${stats.pendingRevenue?.toLocaleString() || 0} F CFA`} 
+          change="Paiements" 
+          trend="down" 
           positiveDown={true}
           icon={<CreditCardIcon className="w-24 h-24 text-rose-500/10 absolute -bottom-4 -right-4 -rotate-12 transition-transform group-hover:scale-110 group-hover:-rotate-6" />}
           borderClass="hover:border-rose-200"
@@ -74,11 +185,25 @@ export default function Dashboard() {
               <option>L'année dernière</option>
             </select>
           </div>
-          <div className="flex-1 rounded-xl bg-gradient-to-tr from-slate-100 to-slate-50/50 border border-slate-100 flex items-center justify-center text-slate-400/50 font-medium">
-            <div className="text-center">
-              <BarChart className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>Module Graphique Réel à Connecter (Recharts/Chart.js)</p>
-            </div>
+          <div className="flex-1 rounded-xl bg-gradient-to-tr from-slate-100 to-slate-50/50 border border-slate-100 p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0284c7" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#0284c7" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: '#0284c7', fontWeight: 'bold' }}
+                />
+                <Area type="monotone" dataKey="count" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
@@ -86,10 +211,10 @@ export default function Dashboard() {
         <div className="glass-card p-6 h-[400px] overflow-hidden flex flex-col">
           <h3 className="text-lg font-bold text-slate-800 mb-6 sticky top-0 bg-white/80 backdrop-blur-sm z-10 pb-2">Activité Récente</h3>
           <div className="space-y-6 overflow-y-auto flex-1 pr-2 custom-scrollbar">
-            <ActivityItem time="Il y a 10 min" title="Nouvelle inscription validée" desc="Emma Dubois (Classe de 3ème)" type="success" />
-            <ActivityItem time="Il y a 1 heure" title="Paiement reçu" desc="Frais de scolarité - Jean Martin (450€)" type="finance" />
-            <ActivityItem time="Hier" title="Absence signalée" desc="Prof. Lemaire (Mathématiques) - Remplacement nécessaire" type="warning" />
-            <ActivityItem time="Hier" title="Bulletin envoyé" desc="Bulletins T1 envoyés à l'ensemble des parents" type="info" />
+            {activities.length === 0 && <p className="text-slate-400 text-sm italic">Aucune activité récente.</p>}
+            {activities.map((act, idx) => (
+              <ActivityItem key={idx} time={act.time} title={act.title} desc={act.desc} type={act.type} />
+            ))}
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -7,7 +7,9 @@ import Teachers from './pages/Teachers';
 import Finances from './pages/Finances';
 import Planning from './pages/Planning';
 import Login from './pages/Login';
-import Landing from './pages/Landing'; // Import de la superbe Landing Page
+import Landing from './pages/Landing';
+import Complaints from './pages/Complaints';
+import Security from './pages/Security';
 
 const AuthGuard = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
   if (!isAuthenticated) {
@@ -17,7 +19,14 @@ const AuthGuard = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   return (
     <BrowserRouter>
@@ -36,6 +45,8 @@ function App() {
              <Route path="teachers" element={<Teachers />} />
              <Route path="finances" element={<Finances />} />
              <Route path="planning" element={<Planning />} />
+             <Route path="complaints" element={<Complaints />} />
+             <Route path="security" element={<Security />} />
              <Route path="settings" element={<div className="p-8 font-black">Paramètres en construction...</div>} />
           </Route>
         </Route>

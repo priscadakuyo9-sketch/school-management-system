@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ArrowRight, Shield, Globe, Zap, CheckCircle, Star, Quote, Image as ImageIcon, MessageSquare, Loader2 } from 'lucide-react';
+import API_URL from '../config';
 
 export default function Landing() {
-  const [formData, setFormData] = useState({ name: '', email: '', program: '', message: '' });
+  const [formData, setFormData] = useState({ parentName: '', studentName: '', email: '', phone: '', program: '', isRepeating: 'Non', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -12,13 +13,13 @@ export default function Landing() {
     setSending(true);
 
     try {
-      // Simulation d'appel à notre API Backend /api/school/notify
-      await fetch('http://localhost:5000/api/school/notify', {
+      // Simulation d'appel à notre API Backend
+      await fetch(`${API_URL}/school/notify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: formData.email,
-          message: `Demande d'inscription de ${formData.name} pour le programme ${formData.program}. Contact: ${formData.email}`,
+          message: `Demande d'inscription de ${formData.studentName} (Parent: ${formData.parentName}) pour la classe ${formData.program}. Tel: ${formData.phone}. Redoublant: ${formData.isRepeating}. Contact: ${formData.email}`,
           type: 'EMAIL_ADMISSION'
         })
       });
@@ -27,7 +28,7 @@ export default function Landing() {
       setTimeout(() => {
         setSending(false);
         setSent(true);
-        setFormData({ name: '', email: '', program: '', message: '' });
+        setFormData({ parentName: '', studentName: '', email: '', phone: '', program: '', isRepeating: 'Non', message: '' });
       }, 1500);
     } catch (error) {
       console.warn("API Backend hors ligne, simulation visuelle seulement.");
@@ -194,23 +195,23 @@ export default function Landing() {
 
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-8">
            <PriceCard 
-             title="Primaire" 
-             price="1 500 €" 
+             title="Collège (6e - 3e)" 
+             price="100 000 F" 
              period="Par an" 
-             features={['Activités périscolaires', 'Accès portail parents', 'Matériel didactique', 'Cantine incluse']} 
+             features={['Activités culturelles', 'Suivi parents SMS', 'Régime sans redoublement', 'Excellence 100%']} 
            />
            <PriceCard 
-             title="Secondaire" 
-             price="2 200 €" 
+             title="Lycée (2nde - 1ère)" 
+             price="150 000 F" 
              period="Par an" 
              featured={true}
-             features={['Laboratoires avancés', 'Suivi personnalisé', 'Orientation carrière', 'Sorties éducatives']} 
+             features={['Séries Scientifiques/Littéraires', 'Laboratoires équipés', 'Orientation Post-Bac', 'Préparation Concours']} 
            />
            <PriceCard 
-             title="Université" 
-             price="4 500 €" 
+             title="Lycée (Terminale)" 
+             price="200 000 F" 
              period="Par an" 
-             features={['Stages garantis', 'Accès fibre optique', 'Bibliothèque digitale', 'Réseau Alumni']} 
+             features={['Prépa Bac Spéciale', 'Accès Bibliothèque Digitale', 'Mentorat Alumnis', 'Bourses d\'excellence']} 
            />
         </div>
       </section>
@@ -252,16 +253,40 @@ export default function Landing() {
                  <form onSubmit={handleInquiryAction} className="space-y-6 relative z-10">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nom Parent</label>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nom du Parent / Tuteur</label>
                         <input 
                           type="text" 
                           required
-                          value={formData.name}
-                          onChange={(e) => setFormData({...formData, name: e.target.value})}
+                          value={formData.parentName}
+                          onChange={(e) => setFormData({...formData, parentName: e.target.value})}
                           className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 placeholder-slate-400 font-medium text-sm focus:ring-2 focus:ring-brand-500" 
-                          placeholder="Jean Dupont" 
+                          placeholder="Ex: M. OUEDRAOGO" 
                         />
                       </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Nom de l'Élève</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={formData.studentName}
+                          onChange={(e) => setFormData({...formData, studentName: e.target.value})}
+                          className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 placeholder-slate-400 font-medium text-sm focus:ring-2 focus:ring-brand-500" 
+                          placeholder="Ex: Adama OUEDRAOGO" 
+                        />
+                      </div>
+                    </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Téléphone</label>
+                        <input 
+                          type="tel" 
+                          required
+                          value={formData.phone}
+                          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                          className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 placeholder-slate-400 font-medium text-sm focus:ring-2 focus:ring-brand-500" 
+                          placeholder="+226 XX XX XX XX" 
+                        />
+                      </div>
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Email</label>
                         <input 
@@ -273,19 +298,44 @@ export default function Landing() {
                           placeholder="jean@mail.com" 
                         />
                       </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">L'élève est-il redoublant ?</label>
+                        <select 
+                          required
+                          value={formData.isRepeating}
+                          onChange={(e) => setFormData({...formData, isRepeating: e.target.value})}
+                          className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-medium text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                        >
+                           <option value="Non">Non (Nouveau passage)</option>
+                           <option value="Oui">Oui (Redoublement)</option>
+                        </select>
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Programme Souhaité</label>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Classe Souhaitée</label>
                       <select 
                         required
                         value={formData.program}
                         onChange={(e) => setFormData({...formData, program: e.target.value})}
                         className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 font-medium text-sm focus:ring-2 focus:ring-brand-500 outline-none"
                       >
-                         <option value="">Choisir un programme</option>
-                         <option value="Primaire">Primaire</option>
-                         <option value="Secondaire">Secondaire</option>
-                         <option value="Université">Université</option>
+                         <option value="">Sélectionner la classe</option>
+                         <optgroup label="Collège">
+                            <option value="6e">6ème</option>
+                            <option value="5e">5ème</option>
+                            <option value="4e">4ème</option>
+                            <option value="3e">3ème</option>
+                         </optgroup>
+                         <optgroup label="Lycée">
+                            <option value="2nde">Seconde (2nde)</option>
+                            <option value="1ere">Première (1ère)</option>
+                            <option value="Tle">Terminale (Tle)</option>
+                         </optgroup>
+                         <optgroup label="Supérieur">
+                            <option value="L1">Licence 1</option>
+                            <option value="L2">Licence 2</option>
+                            <option value="L3">Licence 3</option>
+                         </optgroup>
                       </select>
                     </div>
                     <div className="space-y-2">
@@ -351,12 +401,12 @@ export default function Landing() {
               </div>
            </div>
            <div className="pt-12 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">© 2026 EduManage Advanced Ecosystem.</p>
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">© 2026 EduManage Burkina Faso. Partenaire de l'Excellence.</p>
               <div className="flex gap-6 uppercase text-[10px] font-black text-brand-600 tracking-widest leading-none">
-                 <span>Paris</span>
-                 <span>Lomé</span>
-                 <span>Dakar</span>
-                 <span>Abidjan</span>
+                 <span>Ouagadougou</span>
+                 <span>Bobo-Dioulasso</span>
+                 <span>Koudougou</span>
+                 <span>Banfora</span>
               </div>
            </div>
         </div>

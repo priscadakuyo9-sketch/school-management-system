@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,188 +7,176 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-// ---------------------------
-// 1. UTILISATEURS & PERSONNEL
-// ---------------------------
-
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  role      String   @default("PARENT") // ADMIN, TEACHER, STAFF, PARENT, STUDENT
-  firstName String
-  lastName  String
-  phone     String?
-  avatarUrl String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
+  id             String   @id @default(uuid())
+  email          String   @unique
+  password       String
+  role           String   @default("PARENT") // SUPERADMIN, ADMIN, TEACHER, STUDENT, PARENT
+  firstName      String
+  lastName       String
+  phone          String?
+  avatarUrl      String?
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  parentProfile  Parent?
   studentProfile Student?
   teacherProfile Teacher?
-  parentProfile  Parent?
 }
 
-// Enum Role removed for SQLite compatibility
-
 model Parent {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Peut avoir plusieurs enfants
+  id       String    @id @default(uuid())
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   students Student[]
+  complaints Complaint[]
 }
 
 model Teacher {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  specialty String?
-  
-  // Relations
-  classes    Class[]    // Classes dirigées
-  courses    Course[]   // Cours enseignés
-  attendance Attendance[] // Validation d'absences
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  specialty   String?
+  hourlyRate  Float        @default(2000) // 2500 for scientific, 2000 for literary
+  subjectType String       @default("LITERARY") // SCIENTIFIC, LITERARY
+  attendance  Attendance[]
+  classes     Class[]
+  courses     Course[]
+  salaries    Salary[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// ---------------------------
-// 2. ÉLÈVES & INSCRIPTIONS
-// ---------------------------
 
 model Student {
-  id              String   @id @default(uuid())
-  userId          String?  @unique
-  user            User?    @relation(fields: [userId], references: [id])
-  
-  enrollmentId    String   @unique // Matricule scolaire
-  dateOfBirth     DateTime
-  gender          String
-  address         String?
-  medicalInfo     String?  // Allergies, etc.
-  
-  // Relation avec les parents
-  parentId        String?
-  parent          Parent?   @relation(fields: [parentId], references: [id])
-  
-  classId         String?
-  class           Class?    @relation(fields: [classId], references: [id])
-  
-  grades          Grade[]
-  attendances     Attendance[]
-  behaviorLogs    BehaviorLog[]
-  payments        Payment[]
-
-  createdAt       DateTime @default(now())
+  id           String        @id @default(uuid())
+  userId       String?       @unique
+  enrollmentId String        @unique
+  dateOfBirth  DateTime
+  gender       String
+  address      String?
+  medicalInfo  String?
+  parentId     String?
+  classId      String?
+  createdAt    DateTime      @default(now())
+  attendances  Attendance[]
+  behaviorLogs BehaviorLog[]
+  grades       Grade[]
+  payments     Payment[]
+  complaints   Complaint[]
+  class        Class?        @relation(fields: [classId], references: [id])
+  parent       Parent?       @relation(fields: [parentId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
 }
 
-// ---------------------------
-// 3. ACADÉMIQUE
-// ---------------------------
-
 model Class {
-  id         String   @id @default(uuid())
-  name       String   // ex: 6ème A, 1ère S
-  level      String   // Primaire, Collège, etc.
-  capacity   Int
-  
-  teacherId  String?  // Professeur principal
-  teacher    Teacher? @relation(fields: [teacherId], references: [id])
-  
-  students   Student[]
-  courses    Course[]
+  id        String    @id @default(uuid())
+  name      String    // 6e A, 3e B, Terminale D, CP1, Licence 1...
+  level     String    // 6e, 5e, 4e, 3e, 2nde, 1ere, Terminale, PRIMAIRE, UNIVERSITE
+  cycle     String    @default("SECONDAIRE") // PRIMAIRE, SECONDAIRE, UNIVERSITE
+  capacity  Int
+  teacherId String?
+  teacher   Teacher?  @relation(fields: [teacherId], references: [id])
+  courses   Course[]
+  students  Student[]
 }
 
 model Course {
-  id          String   @id @default(uuid())
-  name        String   // Mathématiques, Histoire...
+  id          String     @id @default(uuid())
+  name        String
   description String?
-  
+  subjectType String     @default("LITERARY") // SCIENTIFIC, LITERARY
+  day         String     @default("Lundi")   // Lundi, Mardi, ...
+  slot        String     @default("07:00-09:00") // créneau horaire
+  room        String?    // salle
   teacherId   String
-  teacher     Teacher  @relation(fields: [teacherId], references: [id])
-  
   classId     String
-  class       Class    @relation(fields: [classId], references: [id])
-  
+  class       Class      @relation(fields: [classId], references: [id])
+  teacher     Teacher    @relation(fields: [teacherId], references: [id])
   grades      Grade[]
   schedule    Schedule[]
 }
 
 model Schedule {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   courseId  String
-  course    Course   @relation(fields: [courseId], references: [id])
-  
-  dayOfWeek Int      // 1 (Lundi) à 7 (Dimanche)
-  startTime String   // Ex: 08:00
-  endTime   String   // Ex: 10:00
-  room      String?  // Salle C12
+  dayOfWeek Int
+  startTime String  // 07:00, 15:00...
+  endTime   String  // 12:00, 18:00...
+  room      String?
+  course    Course  @relation(fields: [courseId], references: [id])
 }
 
 model Grade {
-  id         String   @id @default(uuid())
-  score      Float
-  maxScore   Float    @default(20)
-  term       String   // Trimestre 1, Semestre 1...
-  comments   String?
-  
-  studentId  String
-  student    Student  @relation(fields: [studentId], references: [id])
-  courseId   String
-  course     Course   @relation(fields: [courseId], references: [id])
-  
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  score     Float
+  maxScore  Float    @default(20)
+  term      String
+  comments  String?
+  studentId String
+  courseId  String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id])
 }
 
 model Attendance {
-  id         String   @id @default(uuid())
-  date       DateTime
-  status     String // PRESENT, ABSENT, LATE, EXCUSED
-  notes      String?
-  
-  studentId  String
-  student    Student  @relation(fields: [studentId], references: [id])
-  
-  teacherId  String?
-  teacher    Teacher? @relation(fields: [teacherId], references: [id])
+  id        String   @id @default(uuid())
+  date      DateTime
+  status    String   // PRESENT, ABSENT, LATE
+  notes     String?
+  studentId String
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  student   Student  @relation(fields: [studentId], references: [id])
 }
-
-// Enum AttendanceStatus removed
-
-// ---------------------------
-// 4. DISCIPLINE & COMPORTEMENT
-// ---------------------------
 
 model BehaviorLog {
   id          String   @id @default(uuid())
   date        DateTime @default(now())
   title       String
   description String
-  type        String // POSITIVE, NEGATIVE, WARNING
-  
+  type        String
   studentId   String
   student     Student  @relation(fields: [studentId], references: [id])
 }
 
-// Enum BehaviorType removed
-
-// ---------------------------
-// 5. FINANCE (PAIEMENTS)
-// ---------------------------
-
 model Payment {
-  id           String   @id @default(uuid())
-  amount       Float
-  currency     String   @default("EUR")
-  status       String @default("PENDING")
-  description  String   // Ex: Frais de scolarité Trimestre 1
-  dueDate      DateTime
-  paidDate     DateTime?
-  
-  studentId    String
-  student      Student  @relation(fields: [studentId], references: [id])
+  id          String    @id @default(uuid())
+  amount      Float
+  currency    String    @default("XOF")
+  status      String    @default("PENDING") // PENDING, PAID, PARTIAL
+  description String    // Scolarité Tranche 1, etc.
+  type        String    @default("TUITION") // TUITION, EXAM, OTHER
+  installment Int?      // 1, 2, 3
+  method      String?   // CARD, BANK, CASH
+  cardLast4   String?
+  dueDate     DateTime
+  paidDate    DateTime?
+  studentId   String
+  student     Student   @relation(fields: [studentId], references: [id])
 }
 
-// Enum PaymentStatus removed
+model Complaint {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  solution    String?
+  status      String   @default("OPEN") // OPEN, RESOLVED, CLOSED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  studentId   String?
+  parentId    String?
+  student     Student? @relation(fields: [studentId], references: [id])
+  parent      Parent?  @relation(fields: [parentId], references: [id])
+}
+
+model Salary {
+  id          String   @id @default(uuid())
+  amount      Float
+  month       Int
+  year        Int
+  status      String   @default("PENDING") // PENDING, PAID
+  hoursWorked Float
+  teacherId   String
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  createdAt   DateTime @default(now())
+}
+

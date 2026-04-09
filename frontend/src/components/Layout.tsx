@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState, type ReactNode } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { 
   BarChart, 
   Users, 
@@ -9,13 +9,59 @@ import {
   Bell,
   Search,
   BookOpen,
-  CreditCard
+  CreditCard,
+  LogOut,
+  LifeBuoy,
+  Send,
+  Loader2,
+  MessageCircle,
+  Shield
 } from 'lucide-react';
+import Modal from './Modal';
+import API_URL from '../config';
 
 export default function Layout() {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportMsg, setSupportMsg] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
+  const handleSendSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSending(true);
+    try {
+      await fetch(`${API_URL}/school/notify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          title: 'Demande Support Admin',
+          message: supportMsg,
+          userId: 'system'
+        })
+      });
+      alert('Message envoyé au support technique !');
+      setIsSupportModalOpen(false);
+      setSupportMsg('');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   return (
     <div className="flex bg-slate-50 min-h-screen font-sans">
-      {/* Sidebar (Menu de navigation) */}
       <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-10 transition-all">
         <div className="p-6 flex items-center gap-3 border-b border-slate-100">
           <div className="bg-brand-50 p-2 rounded-xl">
@@ -27,22 +73,67 @@ export default function Layout() {
         </div>
         
         <nav className="flex-1 p-4 space-y-1.5">
-          <NavItem to="/" icon={<BarChart size={20} strokeWidth={2.5} />} label="Tableau de bord" />
-          <NavItem to="/students" icon={<Users size={20} strokeWidth={2.5} />} label="Gestion Élèves" />
-          <NavItem to="/teachers" icon={<GraduationCap size={20} strokeWidth={2.5} />} label="Professeurs" />
-          <NavItem to="/planning" icon={<CalendarDays size={20} strokeWidth={2.5} />} label="Planning & Salles" />
+          <NavItem to="" icon={<BarChart size={20} strokeWidth={2.5} />} label="Tableau de bord" />
+          <NavItem to="students" icon={<Users size={20} strokeWidth={2.5} />} label="Gestion Élèves" />
+          <NavItem to="teachers" icon={<GraduationCap size={20} strokeWidth={2.5} />} label="Professeurs" />
+          <NavItem to="planning" icon={<CalendarDays size={20} strokeWidth={2.5} />} label="Planning & Salles" />
+          <NavItem to="complaints" icon={<MessageCircle size={20} strokeWidth={2.5} />} label="Plaintes & Solutions" />
           <div className="my-4 border-t border-slate-100"></div>
-          <NavItem to="/finances" icon={<CreditCard size={20} strokeWidth={2.5} />} label="Finances & Frais" />
+          <NavItem to="finances" icon={<CreditCard size={20} strokeWidth={2.5} />} label="Finances & Frais" />
+          <NavItem to="security" icon={<Shield size={20} strokeWidth={2.5} />} label="Espace Sécurité" />
         </nav>
         
-        <div className="p-4 border-t border-slate-200 bg-slate-50/50">
-          <NavItem to="/settings" icon={<Settings size={20} strokeWidth={2.5} />} label="Configuration" />
+        <div className="p-4 border-t border-slate-200 bg-slate-50/50 space-y-2">
+          <NavItem to="settings" icon={<Settings size={20} strokeWidth={2.5} />} label="Configuration" />
+          <button 
+            onClick={() => setIsSupportModalOpen(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-white hover:text-brand-600 font-medium transition-all"
+          >
+            <LifeBuoy size={20} strokeWidth={2.5} />
+            Support Technique
+          </button>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-500 hover:bg-rose-50 font-medium transition-all"
+          >
+            <LogOut size={20} strokeWidth={2.5} />
+            Déconnexion
+          </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      <Modal isOpen={isSupportModalOpen} onClose={() => setIsSupportModalOpen(false)} title="Support Technique">
+        <form onSubmit={handleSendSupport} className="space-y-4">
+          <p className="text-sm text-slate-500 font-medium leading-relaxed">
+            Un problème technique ? Envoyez-nous un message et notre équipe interviendra dans les plus brefs délais.
+          </p>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Votre message</label>
+            <textarea 
+              required
+              rows={4}
+              className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none resize-none"
+              placeholder="Décrivez votre problème..."
+              value={supportMsg}
+              onChange={e => setSupportMsg(e.target.value)}
+            />
+          </div>
+          <button 
+            type="submit" 
+            disabled={isSending}
+            className="w-full bg-brand-600 text-white h-12 mt-2 rounded-xl font-bold hover:bg-brand-700 transition-all flex items-center justify-center"
+          >
+            {isSending ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (
+              <div className="flex items-center justify-center gap-2">
+                <Send size={18} />
+                <span>Envoyer au Support</span>
+              </div>
+            )}
+          </button>
+        </form>
+      </Modal>
+
       <main className="flex-1 flex flex-col relative w-full overflow-hidden">
-        {/* Header Dynamique */}
         <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-20">
           <div className="relative w-[28rem]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -61,10 +152,12 @@ export default function Layout() {
             <div className="w-px h-8 bg-slate-200 mx-1"></div>
             <div className="flex items-center gap-3 cursor-pointer group hover:bg-slate-50 p-1.5 rounded-xl transition-all">
               <div className="text-right">
-                <p className="font-bold text-slate-800 text-sm leading-none group-hover:text-brand-600 transition-colors">Super Admin</p>
-                <p className="text-slate-500 text-xs mt-1 font-medium">Direction Générale</p>
+                <p className="font-bold text-slate-800 text-sm leading-none group-hover:text-brand-600 transition-colors">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-slate-500 text-xs mt-1 font-medium">{user.role}</p>
               </div>
-              <img src="https://ui-avatars.com/api/?name=Admin+User&background=14b8a6&color=fff&bold=true" alt="Admin" className="w-10 h-10 rounded-xl shadow-sm border border-slate-200 group-hover:border-brand-200 transition-colors" />
+              <img src={`https://ui-avatars.com/api/?name=${user.firstName}+${user.lastName}&background=14b8a6&color=fff&bold=true`} alt="Admin" className="w-10 h-10 rounded-xl shadow-sm border border-slate-200 group-hover:border-brand-200 transition-colors" />
             </div>
           </div>
         </header>
@@ -83,10 +176,11 @@ function NavItem({ icon, label, to }: { icon: ReactNode, label: string, to: stri
   return (
     <NavLink 
       to={to} 
+      end={to === ''}
       className={({ isActive }) => `
         flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group font-medium
         ${isActive 
-          ? 'bg-gradient-to-r from-brand-50 to-transparent text-brand-700 shadow-[inset_4px_0_0_0_#14b8a6]' 
+          ? 'bg-brand-50 text-brand-700 shadow-[inset_4px_0_0_0_#14b8a6]' 
           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800 hover:translate-x-1'
         }
       `}

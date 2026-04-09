@@ -48,6 +48,28 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
   }
 };
 
+export const createPayment = async (req: Request, res: Response) => {
+  try {
+    const { studentId, amount, description, status, dueDate } = req.body;
+
+    const payment = await prisma.payment.create({
+      data: {
+        studentId,
+        amount,
+        description,
+        status: status || 'PENDING',
+        dueDate: dueDate ? new Date(dueDate) : new Date(),
+        currency: 'XOF'
+      }
+    });
+
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erreur lors de la création de la facture.' });
+  }
+};
+
 export const getPayments = async (req: Request, res: Response) => {
   try {
     const payments = await prisma.payment.findMany({
@@ -56,7 +78,8 @@ export const getPayments = async (req: Request, res: Response) => {
           include: {
             user: {
               select: { firstName: true, lastName: true }
-            }
+            },
+            class: true
           }
         }
       },
@@ -67,3 +90,4 @@ export const getPayments = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Erreur lors de la récupération des paiements.' });
   }
 };
+

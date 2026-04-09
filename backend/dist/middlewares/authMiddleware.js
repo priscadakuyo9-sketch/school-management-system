@@ -8,7 +8,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-edumanage';
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = (authHeader && authHeader.split(' ')[1]) || req.query.token;
     if (!token) {
         return res.status(401).json({ error: 'Accès refusé. Token manquant.' });
     }
@@ -24,7 +24,8 @@ const authenticateToken = (req, res, next) => {
 exports.authenticateToken = authenticateToken;
 const authorizeRole = (roles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
+        const user = req.user;
+        if (!user || !roles.includes(user.role)) {
             return res.status(403).json({ error: "Vous n'avez pas les permissions nécessaires." });
         }
         next();

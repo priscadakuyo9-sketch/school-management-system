@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCheckoutSession = void 0;
+exports.getPayments = exports.createPayment = exports.createCheckoutSession = void 0;
 const stripe_1 = __importDefault(require("stripe"));
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
@@ -57,3 +57,46 @@ const createCheckoutSession = (req, res) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.createCheckoutSession = createCheckoutSession;
+const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { studentId, amount, description, status, dueDate } = req.body;
+        const payment = yield prisma.payment.create({
+            data: {
+                studentId,
+                amount,
+                description,
+                status: status || 'PENDING',
+                dueDate: dueDate ? new Date(dueDate) : new Date(),
+                currency: 'XOF'
+            }
+        });
+        res.status(201).json(payment);
+    }
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erreur lors de la création de la facture.' });
+    }
+});
+exports.createPayment = createPayment;
+const getPayments = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const payments = yield prisma.payment.findMany({
+            include: {
+                student: {
+                    include: {
+                        user: {
+                            select: { firstName: true, lastName: true }
+                        },
+                        class: true
+                    }
+                }
+            },
+            orderBy: { dueDate: 'desc' }
+        });
+        res.json(payments);
+    }
+    catch (error) {
+        res.status(500).json({ error: 'Erreur lors de la récupération des paiements.' });
+    }
+});
+exports.getPayments = getPayments;

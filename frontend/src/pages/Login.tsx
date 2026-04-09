@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from 'lucide-react';
 
+import API_URL from '../config';
+
 export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val: boolean) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -9,15 +11,34 @@ export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulation d'une connexion (on attend 1.5s pour l'effet "Super")
-    setTimeout(() => {
+    setError('');
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setIsAuthenticated(true);
+        window.location.href = '/dashboard';
+      } else {
+        setError(data.error || 'Identifiants invalides');
+      }
+    } catch (err) {
+      setError("Impossible de joindre le serveur. Vérifiez qu'il est démarré.");
+    } finally {
       setLoading(false);
-      setIsAuthenticated(true);
-      navigate('/');
-    }, 1500);
+    }
   };
 
   return (
@@ -73,6 +94,12 @@ export default function Login({ setIsAuthenticated }: { setIsAuthenticated: (val
           <div className="max-w-md mx-auto w-full">
             <h3 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">Bon retour !</h3>
             <p className="text-slate-500 font-medium mb-10">Connectez-vous à votre espace administratif.</p>
+
+            {error && (
+              <div className="p-4 mb-6 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-sm font-bold animate-in fade-in zoom-in duration-300">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-1.5">

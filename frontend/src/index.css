@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .input-field {
+    @apply w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm font-medium focus:ring-4 focus:ring-brand-500/10 focus:border-brand-500 transition-all outline-none;
+  }
+}
+
 @layer base {
   body {
     @apply bg-slate-50 text-slate-900 font-sans tracking-tight antialiased selection:bg-brand-500 selection:text-white;
