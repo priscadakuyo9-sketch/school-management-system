@@ -7,7 +7,6 @@
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
     "build": "tsc",
-    "postinstall": "npx prisma generate",
     "migrate:prod": "npx prisma migrate deploy"
   },
   "dependencies": {
